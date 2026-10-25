@@ -102,3 +102,14 @@ http://localhost:8080/swagger-ui/index.html
 - Additional transaction validation
 - Integration tests with a test database
 - Authentication and authorization
+
+## Screenshots
+
+### Swagger API Documentation
+![Swagger UI](screenshots/swagger-ui.png)
+
+### High-Risk Transaction
+![High-Risk Transaction](screenshots/high-risk-transaction.png)
+
+### Validation Error
+![Validation Error](screenshots/validation-error.png)
