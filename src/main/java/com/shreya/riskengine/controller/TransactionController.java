@@ -1,6 +1,7 @@
 package com.shreya.riskengine.controller;
 
 import com.shreya.riskengine.dto.TransactionRequest;
+import com.shreya.riskengine.dto.TransactionResponse;
 import com.shreya.riskengine.entity.RiskLevel;
 import com.shreya.riskengine.entity.Transaction;
 import com.shreya.riskengine.service.TransactionService;
@@ -21,17 +22,17 @@ public class TransactionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Transaction create(@Valid @RequestBody TransactionRequest request) {
+    public TransactionResponse create(@Valid @RequestBody TransactionRequest request) {
         return service.create(request);
     }
 
     @GetMapping("/{id}")
-    public Transaction getById(@PathVariable Long id) {
+    public TransactionResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
     @GetMapping
-    public Page<Transaction> getAll(
+    public Page<TransactionResponse> getAll(
             @RequestParam(required = false) RiskLevel riskLevel,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {

@@ -1,6 +1,7 @@
 package com.shreya.riskengine.service;
 
 import com.shreya.riskengine.dto.TransactionRequest;
+import com.shreya.riskengine.dto.TransactionResponse;
 import com.shreya.riskengine.entity.RiskLevel;
 import com.shreya.riskengine.entity.Transaction;
 import com.shreya.riskengine.repository.TransactionRepository;
@@ -25,7 +26,7 @@ public class TransactionService {
         this.repository = repository;
     }
 
-    public Transaction create(TransactionRequest request) {
+    public TransactionResponse create(TransactionRequest request) {
         Transaction transaction = new Transaction(
             request.amount(),
             request.currency(),
@@ -60,16 +61,17 @@ public class TransactionService {
         transaction.setRiskLevel(level);
         transaction.setFlagged(level == RiskLevel.HIGH);
 
-        return repository.save(transaction);
+        return mapToResponse(repository.save(transaction));
     }
 
-    public Transaction getById(Long id) {
-        return repository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND, "Transaction not found: " + id));
+    public TransactionResponse getById(Long id) {
+        return mapToResponse(repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Transaction not found: " + id)));
     }
 
-    public Page<Transaction> getAll(RiskLevel riskLevel, int page, int size) {
+    public Page<TransactionResponse> getAll(
+            RiskLevel riskLevel, int page, int size) {
         if (page < 0) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST, "Page must be zero or greater");
@@ -82,8 +84,26 @@ public class TransactionService {
         Pageable pageable = PageRequest.of(
             page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        return riskLevel == null
-            ? repository.findAll(pageable)
-            : repository.findByRiskLevel(riskLevel, pageable);
+        return (riskLevel == null
+                ? repository.findAll(pageable)
+                : repository.findByRiskLevel(riskLevel, pageable))
+                .map(this::mapToResponse);
     }
+
+
+    private TransactionResponse mapToResponse(Transaction transaction) {
+        return new TransactionResponse(
+                transaction.getId(),
+                transaction.getAmount(),
+                transaction.getCurrency(),
+                transaction.getChannel(),
+                transaction.isInternational(),
+                transaction.getRiskScore(),
+                transaction.getRiskLevel(),
+                transaction.isFlagged(),
+                transaction.getCreatedAt()
+        );
+    }
+
+
 }
