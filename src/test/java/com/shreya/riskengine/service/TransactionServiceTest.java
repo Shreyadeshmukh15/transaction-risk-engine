@@ -1,9 +1,12 @@
+
 package com.shreya.riskengine.service;
 
 import com.shreya.riskengine.dto.TransactionRequest;
+import com.shreya.riskengine.dto.TransactionResponse;
 import com.shreya.riskengine.entity.RiskLevel;
 import com.shreya.riskengine.entity.Transaction;
 import com.shreya.riskengine.repository.TransactionRepository;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,67 +31,77 @@ class TransactionServiceTest {
 
     @Test
     void allRiskRulesShouldProduceHighRiskAndFlagTransaction() {
+
         TransactionRequest request = new TransactionRequest(
-            new BigDecimal("85000"), "INR", "ONLINE", true);
+                new BigDecimal("85000"), "INR", "ONLINE", true
+        );
 
         when(repository.save(any(Transaction.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Transaction result = service.create(request);
+        TransactionResponse result = service.create(request);
 
-        assertEquals(90, result.getRiskScore());
-        assertEquals(RiskLevel.HIGH, result.getRiskLevel());
-        assertTrue(result.isFlagged());
+        assertEquals(90, result.riskScore());
+        assertEquals(RiskLevel.HIGH, result.riskLevel());
+        assertTrue(result.flagged());
+
         verify(repository).save(any(Transaction.class));
     }
 
     @Test
     void branchTransactionWithLowAmountShouldBeLowRisk() {
+
         TransactionRequest request = new TransactionRequest(
-            new BigDecimal("1000"), "INR", "BRANCH", false);
+                new BigDecimal("1000"), "INR", "BRANCH", false
+        );
 
         when(repository.save(any(Transaction.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Transaction result = service.create(request);
+        TransactionResponse result = service.create(request);
 
-        assertEquals(0, result.getRiskScore());
-        assertEquals(RiskLevel.LOW, result.getRiskLevel());
-        assertFalse(result.isFlagged());
+        assertEquals(0, result.riskScore());
+        assertEquals(RiskLevel.LOW, result.riskLevel());
+        assertFalse(result.flagged());
     }
 
     @Test
     void internationalOnlyTransactionShouldBeMediumRisk() {
+
         TransactionRequest request = new TransactionRequest(
-            new BigDecimal("1000"), "INR", "BRANCH", true);
+                new BigDecimal("1000"), "INR", "BRANCH", true
+        );
 
         when(repository.save(any(Transaction.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Transaction result = service.create(request);
+        TransactionResponse result = service.create(request);
 
-        assertEquals(30, result.getRiskScore());
-        assertEquals(RiskLevel.MEDIUM, result.getRiskLevel());
-        assertFalse(result.isFlagged());
+        assertEquals(30, result.riskScore());
+        assertEquals(RiskLevel.MEDIUM, result.riskLevel());
+        assertFalse(result.flagged());
     }
 
     @Test
     void maximumCombinationOfCurrentRiskRulesShouldScoreNinety() {
+
         TransactionRequest request = new TransactionRequest(
-            new BigDecimal("100000"), "INR", "ONLINE", true);
+                new BigDecimal("100000"), "INR", "ONLINE", true
+        );
 
         when(repository.save(any(Transaction.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Transaction result = service.create(request);
+        TransactionResponse result = service.create(request);
 
-        assertEquals(90, result.getRiskScore());
-        assertTrue(result.isFlagged());
+        assertEquals(90, result.riskScore());
+        assertEquals(RiskLevel.HIGH, result.riskLevel());
+        assertTrue(result.flagged());
     }
-
 
     @Test
     void amountAtThresholdWithOnlineChannelShouldBeHighRisk() {
+
         TransactionRequest request = new TransactionRequest(
                 new BigDecimal("50000"), "INR", "ONLINE", false
         );
@@ -96,15 +109,16 @@ class TransactionServiceTest {
         when(repository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Transaction result = service.create(request);
+        TransactionResponse result = service.create(request);
 
-        assertEquals(60, result.getRiskScore());
-        assertEquals(RiskLevel.HIGH, result.getRiskLevel());
-        assertTrue(result.isFlagged());
+        assertEquals(60, result.riskScore());
+        assertEquals(RiskLevel.HIGH, result.riskLevel());
+        assertTrue(result.flagged());
     }
 
     @Test
     void getByIdForMissingTransactionShouldThrowNotFound() {
+
         when(repository.findById(999L))
                 .thenReturn(java.util.Optional.empty());
 
@@ -118,6 +132,7 @@ class TransactionServiceTest {
 
     @Test
     void invalidPageSizeShouldThrowBadRequest() {
+
         assertThrows(
                 ResponseStatusException.class,
                 () -> service.getAll(null, 0, 0)
@@ -125,6 +140,4 @@ class TransactionServiceTest {
 
         verifyNoInteractions(repository);
     }
-
-
 }
