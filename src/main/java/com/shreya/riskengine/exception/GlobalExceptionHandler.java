@@ -1,5 +1,6 @@
 package com.shreya.riskengine.exception;
 
+import com.shreya.riskengine.dto.ApiErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -10,50 +11,58 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(
+    public ResponseEntity<ApiErrorResponse> handleValidation(
             MethodArgumentNotValidException ex) {
+
         String details = ex.getBindingResult().getFieldErrors().stream()
-            .map(error -> error.getField() + ": " + error.getDefaultMessage())
-            .collect(Collectors.joining("; "));
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+
         return build(HttpStatus.BAD_REQUEST, details);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleStatus(
+    public ResponseEntity<ApiErrorResponse> handleStatus(
             ResponseStatusException ex) {
+
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
-        return build(status, ex.getReason() == null ? "Request failed" : ex.getReason());
+
+        return build(status,
+                ex.getReason() == null ? "Request failed" : ex.getReason());
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleTypeMismatch(
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
             MethodArgumentTypeMismatchException ex) {
+
         return build(HttpStatus.BAD_REQUEST,
-            "Invalid value for parameter: " + ex.getName());
+                "Invalid value for parameter: " + ex.getName());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleUnreadable(
+    public ResponseEntity<ApiErrorResponse> handleUnreadable(
             HttpMessageNotReadableException ex) {
+
         return build(HttpStatus.BAD_REQUEST,
-            "Request body is invalid or contains an unsupported value");
+                "Request body is invalid or contains an unsupported value");
     }
 
-    private ResponseEntity<Map<String, Object>> build(
+    private ResponseEntity<ApiErrorResponse> build(
             HttpStatus status, String message) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", message);
-        return ResponseEntity.status(status).body(body);
+
+        ApiErrorResponse response = new ApiErrorResponse(
+                LocalDateTime.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message
+        );
+
+        return ResponseEntity.status(status).body(response);
     }
 }
