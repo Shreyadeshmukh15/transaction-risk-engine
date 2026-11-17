@@ -13,6 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.shreya.riskengine.repository.specification.TransactionSpecification;
+import org.springframework.data.jpa.domain.Specification;
+import java.time.LocalDateTime;
+
 import java.math.BigDecimal;
 
 @Service
@@ -27,11 +31,15 @@ public class TransactionService {
     }
 
     public TransactionResponse create(TransactionRequest request) {
+
+        String currency = request.currency().trim().toUpperCase();
+        String channel = request.channel().trim().toUpperCase();
+
         Transaction transaction = new Transaction(
-            request.amount(),
-            request.currency(),
-            request.channel(),
-            request.international()
+                request.amount(),
+                currency,
+                channel,
+                request.international()
         );
 
         int score = 0;
@@ -70,25 +78,78 @@ public class TransactionService {
                         HttpStatus.NOT_FOUND, "Transaction not found: " + id)));
     }
 
+
     public Page<TransactionResponse> getAll(
-            RiskLevel riskLevel, int page, int size) {
-        if (page < 0) {
+            RiskLevel riskLevel,
+            String channel,
+            String currency,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            Boolean international,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            int page,
+            int size) {
+
+        if (page < 0 || size <= 0 || size > 100) {
             throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, "Page must be zero or greater");
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid pagination parameters"
+            );
         }
-        if (size < 1 || size > 100) {
+
+        if (minAmount != null && minAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, "Size must be between 1 and 100");
+                    HttpStatus.BAD_REQUEST,
+                    "Minimum amount must be greater than zero"
+            );
+        }
+
+        if (maxAmount != null && maxAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Maximum amount must be greater than zero"
+            );
+        }
+
+        if (minAmount != null && maxAmount != null
+                && minAmount.compareTo(maxAmount) > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Minimum amount cannot exceed maximum amount"
+            );
+        }
+
+        if (fromDate != null && toDate != null
+                && fromDate.isAfter(toDate)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "From date cannot be after to date"
+            );
         }
 
         Pageable pageable = PageRequest.of(
-            page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+                page,
+                size,
+                Sort.by("createdAt").descending()
+        );
 
-        return (riskLevel == null
-                ? repository.findAll(pageable)
-                : repository.findByRiskLevel(riskLevel, pageable))
+        Specification<Transaction> specification =
+                TransactionSpecification.filterTransactions(
+                        riskLevel,
+                        channel,
+                        currency,
+                        minAmount,
+                        maxAmount,
+                        international,
+                        fromDate,
+                        toDate
+                );
+
+        return repository.findAll(specification, pageable)
                 .map(this::mapToResponse);
     }
+
 
 
     private TransactionResponse mapToResponse(Transaction transaction) {
