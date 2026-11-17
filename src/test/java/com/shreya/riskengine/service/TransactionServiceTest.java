@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -19,6 +20,11 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
@@ -130,14 +136,71 @@ class TransactionServiceTest {
         assertEquals(404, exception.getStatusCode().value());
     }
 
+
     @Test
     void invalidPageSizeShouldThrowBadRequest() {
 
         assertThrows(
                 ResponseStatusException.class,
-                () -> service.getAll(null, 0, 0)
+                () -> service.getAll(
+                        null, null, null,
+                        null, null, null,
+                        null, null,
+                        0, 0
+                )
         );
 
         verifyNoInteractions(repository);
     }
+
+
+    @Test
+    void getAllWithFiltersShouldReturnPagedResults() {
+
+        when(repository.findAll(
+                any(Specification.class),
+                any(Pageable.class)
+        )).thenReturn(new PageImpl<>(List.of()));
+
+        var result = service.getAll(
+                RiskLevel.HIGH,
+                "ONLINE",
+                "INR",
+                new BigDecimal("50000"),
+                new BigDecimal("100000"),
+                true,
+                null,
+                null,
+                0,
+                10
+        );
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+
+        verify(repository).findAll(
+                any(Specification.class),
+                any(Pageable.class)
+        );
+    }
+
+
+    @Test
+    void minimumAmountGreaterThanMaximumShouldThrowBadRequest() {
+
+        assertThrows(
+                ResponseStatusException.class,
+                () -> service.getAll(
+                        null, null, null,
+                        new BigDecimal("100000"),
+                        new BigDecimal("50000"),
+                        null, null, null,
+                        0, 10
+                )
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
 }

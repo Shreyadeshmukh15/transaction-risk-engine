@@ -7,8 +7,13 @@ import com.shreya.riskengine.entity.Transaction;
 import com.shreya.riskengine.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -31,11 +36,57 @@ public class TransactionController {
         return service.getById(id);
     }
 
+
     @GetMapping
-    public Page<TransactionResponse> getAll(
-            @RequestParam(required = false) RiskLevel riskLevel,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return service.getAll(riskLevel, page, size);
+    public ResponseEntity<Page<TransactionResponse>> getAll(
+
+            @RequestParam(required = false)
+            RiskLevel riskLevel,
+
+            @RequestParam(required = false)
+            String channel,
+
+            @RequestParam(required = false)
+            String currency,
+
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @RequestParam(required = false)
+            BigDecimal maxAmount,
+
+            @RequestParam(required = false)
+            Boolean international,
+
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime fromDate,
+
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime toDate,
+
+            @RequestParam(defaultValue = "0")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            int size
+    ) {
+
+        return ResponseEntity.ok(
+                service.getAll(
+                        riskLevel,
+                        channel,
+                        currency,
+                        minAmount,
+                        maxAmount,
+                        international,
+                        fromDate,
+                        toDate,
+                        page,
+                        size
+                )
+        );
     }
+
 }

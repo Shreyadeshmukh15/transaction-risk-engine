@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,6 +23,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import org.springframework.data.domain.Page;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDateTime;
 
 @WebMvcTest(TransactionController.class)
 class TransactionControllerTest {
@@ -124,4 +130,106 @@ class TransactionControllerTest {
 
         verify(service, never()).create(any(TransactionRequest.class));
     }
+
+
+    @Test
+    void getTransactionsWithMultipleFiltersShouldReturn200() throws Exception {
+
+        when(service.getAll(
+                any(), any(), any(), any(),
+                any(), any(), any(), any(),
+                anyInt(), anyInt()
+        )).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/transactions")
+                        .param("riskLevel", "HIGH")
+                        .param("channel", "ONLINE")
+                        .param("currency", "INR")
+                        .param("minAmount", "50000")
+                        .param("maxAmount", "100000")
+                        .param("international", "true")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        verify(service).getAll(
+                eq(RiskLevel.HIGH),
+                eq("ONLINE"),
+                eq("INR"),
+                eq(new BigDecimal("50000")),
+                eq(new BigDecimal("100000")),
+                eq(true),
+                isNull(),
+                isNull(),
+                eq(0),
+                eq(10)
+        );
+    }
+
+    @Test
+    void getTransactionByIdShouldReturn200() throws Exception {
+
+        TransactionResponse transaction = new TransactionResponse(
+                1L,
+                new BigDecimal("85000"),
+                "INR",
+                "ONLINE",
+                true,
+                90,
+                RiskLevel.HIGH,
+                true,
+                LocalDateTime.now()
+        );
+
+        when(service.getById(1L)).thenReturn(transaction);
+
+        mockMvc.perform(get("/api/transactions/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.amount").value(85000))
+                .andExpect(jsonPath("$.riskLevel").value("HIGH"));
+
+        verify(service).getById(1L);
+    }
+
+    @Test
+    void getNonExistingTransactionShouldReturn404() throws Exception {
+
+        when(service.getById(999L))
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Transaction not found: 999"
+                ));
+
+        mockMvc.perform(get("/api/transactions/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message")
+                        .value("Transaction not found: 999"));
+
+        verify(service).getById(999L);
+    }
+
+    @Test
+    void invalidPageSizeShouldReturn400() throws Exception {
+
+        when(service.getAll(
+                any(), any(), any(), any(), any(),
+                any(), any(), any(), anyInt(), anyInt()
+        )).thenThrow(new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Invalid pagination parameters"
+        ));
+
+        mockMvc.perform(get("/api/transactions")
+                        .param("page", "0")
+                        .param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid pagination parameters"));
+    }
+
+
 }
