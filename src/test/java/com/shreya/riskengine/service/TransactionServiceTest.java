@@ -146,7 +146,7 @@ class TransactionServiceTest {
                         null, null, null,
                         null, null, null,
                         null, null,
-                        0, 0
+                        0, 0,new String[]{"createdAt","desc"}
                 )
         );
 
@@ -172,7 +172,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 0,
-                10
+                10,
+                new String[]{"amount","asc"}
         );
 
         assertNotNull(result);
@@ -184,7 +185,6 @@ class TransactionServiceTest {
         );
     }
 
-
     @Test
     void minimumAmountGreaterThanMaximumShouldThrowBadRequest() {
 
@@ -195,7 +195,7 @@ class TransactionServiceTest {
                         new BigDecimal("100000"),
                         new BigDecimal("50000"),
                         null, null, null,
-                        0, 10
+                        0, 10,new String[]{"amount", "asc"}
                 )
         );
 

@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Sort;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -70,7 +72,12 @@ public class TransactionController {
             int page,
 
             @RequestParam(defaultValue = "10")
-            int size
+            int size,
+
+            @RequestParam(defaultValue = "createdAt,desc")
+            String[] sort
+
+
     ) {
 
         return ResponseEntity.ok(
@@ -84,7 +91,8 @@ public class TransactionController {
                         fromDate,
                         toDate,
                         page,
-                        size
+                        size,
+                        sort
                 )
         );
     }
