@@ -18,6 +18,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDateTime;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 @Service
 public class TransactionService {
@@ -89,7 +90,8 @@ public class TransactionService {
             LocalDateTime fromDate,
             LocalDateTime toDate,
             int page,
-            int size) {
+            int size,
+            String[] sort) {
 
         if (page < 0 || size <= 0 || size > 100) {
             throw new ResponseStatusException(
@@ -128,11 +130,27 @@ public class TransactionService {
             );
         }
 
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by("createdAt").descending()
-        );
+        Sort sorting;
+
+        if (sort == null || sort.length == 0) {
+            sorting = Sort.by("createdAt").descending();
+        } else if (sort.length == 2) {
+
+            String property = sort[0].trim();
+
+            Sort.Direction direction =
+                    Sort.Direction.fromString(sort[1].trim());
+
+            sorting = Sort.by(direction, property);
+
+        } else {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid sort parameters"
+            );
+        }
+
+        Pageable pageable = PageRequest.of(page, size, sorting);
 
         Specification<Transaction> specification =
                 TransactionSpecification.filterTransactions(

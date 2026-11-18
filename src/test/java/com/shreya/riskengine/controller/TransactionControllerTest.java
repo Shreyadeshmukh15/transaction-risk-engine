@@ -138,7 +138,7 @@ class TransactionControllerTest {
         when(service.getAll(
                 any(), any(), any(), any(),
                 any(), any(), any(), any(),
-                anyInt(), anyInt()
+                anyInt(), anyInt(), any(String[].class)
         )).thenReturn(Page.empty());
 
         mockMvc.perform(get("/api/transactions")
@@ -149,7 +149,8 @@ class TransactionControllerTest {
                         .param("maxAmount", "100000")
                         .param("international", "true")
                         .param("page", "0")
-                        .param("size", "10"))
+                        .param("size", "10")
+                        .param("sort", "amount,asc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
 
@@ -163,7 +164,10 @@ class TransactionControllerTest {
                 isNull(),
                 isNull(),
                 eq(0),
-                eq(10)
+                eq(10),
+                argThat(sort -> sort.length == 2
+                        && "amount".equals(sort[0])
+                        && "asc".equals(sort[1]))
         );
     }
 
@@ -216,7 +220,7 @@ class TransactionControllerTest {
 
         when(service.getAll(
                 any(), any(), any(), any(), any(),
-                any(), any(), any(), anyInt(), anyInt()
+                any(), any(), any(), anyInt(), anyInt(),any(String[].class)
         )).thenThrow(new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "Invalid pagination parameters"
